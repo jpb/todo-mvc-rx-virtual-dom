@@ -14,8 +14,11 @@ class Todo {
   }
 
   startRecording() {
+    let start = new Date();
     this.eventBus.takeWhile((event) => {
       return event.action !== 'stopRecording';
+    }).map((event) => {
+      return event.set('_recordingDelay', new Date() - start);
     }).toArray().subscribe(
       (recording) => { this.recording = Immutable(recording).asMutable({deep: true}); },
       (error) => { console.error('[Recording]', error); },
@@ -26,6 +29,26 @@ class Todo {
   stopRecording() {
     this.emit({ action: 'stopRecording' });
     return this.recording;
+  }
+
+  playRecording(recording0, options0) {
+    let options = _.merge({realTime: true, speed: 1}, options0),
+        recording;
+
+    if(options.realTime) {
+      recording = Rx.Observable.from(recording0).flatMap((event) => {
+        return Rx.Observable.just(Immutable(event).without('_recordingDelay'))
+          .delay(event._recordingDelay / options.speed);
+      });
+    } else {
+      recording = Rx.Observable.from(recording0);
+    }
+
+    recording.subscribe(
+      (event) => { this.eventBus.onNext(event); },
+      (error) => { console.error('[Playback]', error); },
+      () => { console.debug('[Playback] done'); }
+    );
   }
 
   emit(event) {
