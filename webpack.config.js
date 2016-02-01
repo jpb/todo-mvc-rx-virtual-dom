@@ -5,7 +5,6 @@ var autoprefixer = require('autoprefixer');
 var webpackConfig = {
   entry: './entry.js',
   output: {
-    path: './dist/',
     filename: 'todo-mvc-rx-virtual-dom.bundle.js'
   },
   module: {
