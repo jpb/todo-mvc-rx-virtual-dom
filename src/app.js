@@ -10,6 +10,22 @@ class Todo {
   constructor(container) {
     this.container = container;
     this.eventBus = new Rx.Subject();
+    this.recording = null;
+  }
+
+  startRecording() {
+    this.eventBus.takeWhile((event) => {
+      return event.action !== 'stopRecording';
+    }).toArray().subscribe(
+      (recording) => { this.recording = Immutable(recording).asMutable({deep: true}); },
+      (error) => { console.error('[Recording]', error); },
+      () => { console.debug('[Recording] done'); }
+    );
+  }
+
+  stopRecording() {
+    this.emit({ action: 'stopRecording' });
+    return this.recording;
   }
 
   emit(event) {
@@ -17,7 +33,6 @@ class Todo {
   }
 
   init() {
-
     let initial = Immutable({
           show: 'all',
           todos: {}
