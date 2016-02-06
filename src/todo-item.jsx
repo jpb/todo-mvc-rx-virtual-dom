@@ -1,3 +1,5 @@
+import StateWidget from './state-widget';
+
 class TodoItem {
   constructor(emit, eventBus) {
     this.emit = emit;
@@ -25,7 +27,33 @@ class TodoItem {
             });
           }
         },
-        emit = (action) => { return (ev) => { this.emit({action: action, id: id})}};
+        emit = (action) =>
+          (ev) => { this.emit({action: action, id: id})},
+        input = new StateWidget(
+          // generateState
+          () => {
+            console.debug('[Input state] generate state', item.text);
+            let subject = new Rx.Subject(),
+                subscription = subject.debounce(200).subscribe(
+                  save,
+                  (e) => console.error(e),
+                  () => console.debug('[Input state] Completed', item.text)
+                );
+            return { subject: subject, subscription: subscription };
+          },
+          // render
+          (state) => (<input class="edit"
+                        value={ item.text }
+                        autofocus={ item.editing ? true : undefined }
+                        ev-blur={ emit('unedit') }
+                        ev-keyup={ (ev) => state.subject.onNext(ev) } />),
+          // destroy
+          (state) => {
+            console.debug('[Input state] destroy', item.text);
+            state.subject.onCompleted();
+            state.subscription.dispose();
+          });
+
     return (
       <li class={ cssClass }>
         <div class="view">
@@ -36,11 +64,7 @@ class TodoItem {
           <label ev-dblclick={ emit('edit') }>{ item.text }</label>
           <button class="destroy" ev-click={ emit('destroy') }></button>
         </div>
-        <input class="edit"
-          value={ item.text }
-          ev-keyup={ save }
-          ev-blur={ emit('unedit') }
-          autofocus={ item.editing ? true : undefined }/>
+        { input }
       </li>
     )
   }
